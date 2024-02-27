@@ -1,0 +1,19 @@
+model:
+  # model name
+  arch: mad_qformer_opt
+  # model type in model class
+  model_type: vitl
+  # load pretrained/pretrained: bool and the path
+  pretrained: "https://storage.googleapis.com/sfr-vision-language-research/LAVIS/models/BLIP2/blip2_pretrained_vitL.pth"
+  load_pretrained: True
+  load_finetuned: False
+  encoder_config:
+      end2end: False
+      dim_features: 1024
+  num_query_token: 32
+  opt_model: "facebook/opt-125m"
+  prompt: "According to the contextual subtitles and captions, describe the content of the clip"
+  subtitle: True
+  caption: True
+  contextual_max_len: 256
+  top_k: 0
