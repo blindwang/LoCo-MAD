@@ -60,6 +60,7 @@ class MADQformerOPT(QformerBase):
             cross_attention_freq=1,
             num_hidden_layers=2,
             visual_num_temporal_embedding=None,
+            fixed_contextual_range=3
     ):
         """
 
@@ -87,6 +88,7 @@ class MADQformerOPT(QformerBase):
         self.discard_visual_cls_token = False
         self.visual_temporal_encoder_config = None
         self.query_temporal_embeddings = None
+        self.fixed_contextual_range = fixed_contextual_range
 
         if encoder_config['end2end'] is True:
             pass
@@ -199,7 +201,7 @@ class MADQformerOPT(QformerBase):
         sub_tokens, cap_tokens, sub_cap_tokens, prompt_tokens = None, None, None, None
         device = video_embeds.device
         # dynamic contextual text selection
-        select_loss = 0
+        select_loss = torch.tensor(0.0).to(device)
         topk_relavency_score, topk_relavency_index = None, None
         if self.top_k > 0:
             text_embeds = samples["feature_language"]
@@ -310,7 +312,7 @@ class MADQformerOPT(QformerBase):
                 assert len(samples['caption'][i]) == len(
                     samples['subtitle'][i]), "subtitle list and caption list should have the same length"
                 context_range = len(samples['caption'][i])
-                contexture_index = [j for j in range(max(0,context_range//2-2), min(context_range,context_range//2+4))]
+                contexture_index = [j for j in range(max(0,context_range//2-self.fixed_contextual_range + 1), min(context_range,context_range//2+self.fixed_contextual_range + 1))]
                 for j in range(len(samples['caption'][i])):
                     if topk_relavency_index is not None:
                         if j not in topk_relavency_index[i] and j not in contexture_index:
@@ -334,7 +336,7 @@ class MADQformerOPT(QformerBase):
                 sample_sub = ""
                 context_range = len(samples['caption'][i])
                 contexture_index = [j for j in
-                                    range(max(0, context_range // 2 - 2), min(context_range, context_range // 2 + 4))]
+                                    range(max(0, context_range // 2 - self.fixed_contextual_range + 1), min(context_range, context_range // 2 + self.fixed_contextual_range + 1))]
                 for j in range(len(samples['caption'][i])):
                     if topk_relavency_index is not None:
                         if j not in topk_relavency_index[i] and j not in contexture_index:
@@ -367,16 +369,18 @@ class MADQformerOPT(QformerBase):
         elif self.caption:
             caps = []
             for i in range(len(samples['caption'])):
-                sample_cap = ""
+                sample_cap = "BCP_token"
                 context_range = len(samples['caption'][i])
                 contexture_index = [j for j in
-                                    range(max(0, context_range // 2 - 2), min(context_range, context_range // 2 + 4))]
+                                    range(max(0, context_range // 2 - self.fixed_contextual_range + 1), min(context_range, context_range // 2 + self.fixed_contextual_range + 1))]
                 for j in range(len(samples['caption'][i])):
                     if topk_relavency_index is not None:
                         if j not in topk_relavency_index[i] and j not in contexture_index:
                             continue
                     if samples['caption'][i][j] != "":
-                        sample_cap += "BCP_token" + samples['caption'][i][j] + "ECP_token"
+                        # sample_cap += "BCP_token" + samples['caption'][i][j] + "ECP_token"
+                        sample_cap += samples['caption'][i][j]
+                sample_cap += "ECP_token"
                 caps.append(sample_cap)
             cap_tokens = self.opt_tokenizer(caps,
                                             return_tensors="pt",
@@ -626,8 +630,8 @@ class MADQformerOPT(QformerBase):
                         samples['subtitle'][i]), "subtitle list and caption list should have the same length"
                     context_range = len(samples['caption'][i])
                     contexture_index = [j for j in
-                                        range(max(0, context_range // 2 - 2),
-                                              min(context_range, context_range // 2 + 4))]
+                                        range(max(0, context_range // 2 - self.fixed_contextual_range + 1),
+                                              min(context_range, context_range // 2 + self.fixed_contextual_range + 1))]
                     for j in range(len(samples['caption'][i])):
                         if topk_relavency_index is not None:
                             if j not in topk_relavency_index[i] and j not in contexture_index:
@@ -651,8 +655,8 @@ class MADQformerOPT(QformerBase):
                     sample_sub = ""
                     context_range = len(samples['caption'][i])
                     contexture_index = [j for j in
-                                        range(max(0, context_range // 2 - 2),
-                                              min(context_range, context_range // 2 + 4))]
+                                        range(max(0, context_range // 2 - self.fixed_contextual_range + 1),
+                                              min(context_range, context_range // 2 + self.fixed_contextual_range + 1))]
                     for j in range(len(samples['caption'][i])):
                         if topk_relavency_index is not None:
                             if j not in topk_relavency_index[i] and j not in contexture_index:
@@ -671,17 +675,19 @@ class MADQformerOPT(QformerBase):
             elif self.caption:
                 caps = []
                 for i in range(len(samples['caption'])):
-                    sample_cap = ""
+                    sample_cap = "BCP_token"
                     context_range = len(samples['caption'][i])
                     contexture_index = [j for j in
-                                        range(max(0, context_range // 2 - 2),
-                                              min(context_range, context_range // 2 + 4))]
+                                        range(max(0, context_range // 2 - self.fixed_contextual_range + 1),
+                                              min(context_range, context_range // 2 + self.fixed_contextual_range + 1))]
                     for j in range(len(samples['caption'][i])):
                         if topk_relavency_index is not None:
                             if j not in topk_relavency_index[i] and j not in contexture_index:
                                 continue
                         if samples['caption'][i][j] != "":
-                            sample_cap += "BCP_token" + samples['caption'][i][j] + "ECP_token"
+                            # sample_cap += "BCP_token" + samples['caption'][i][j] + "ECP_token"
+                            sample_cap += samples['caption'][i][j]
+                    sample_cap += "ECP_token"
                     caps.append(sample_cap)
                 cap_tokens = self.opt_tokenizer(caps,
                                                 return_tensors="pt",
@@ -791,6 +797,7 @@ class MADQformerOPT(QformerBase):
         contextual_max_len = cfg.get("contextual_max_len", 256)
         visual_num_temporal_embedding = cfg.get("visual_num_temporal_embedding", None)
         num_hidden_layers = cfg.get("num_hidden_layers", 2)
+        fixed_contextual_range = cfg.get("fixed_contextual_range", 3)
 
         model = cls(
             num_query_token=num_query_token,
@@ -803,7 +810,8 @@ class MADQformerOPT(QformerBase):
             top_k=top_k,
             visual_num_temporal_embedding=visual_num_temporal_embedding,
             cross_attention_freq=1,
-            num_hidden_layers=num_hidden_layers
+            num_hidden_layers=num_hidden_layers,
+            fixed_contextual_range = fixed_contextual_range
         )
 
         model.load_checkpoint_from_config(cfg)

@@ -4,7 +4,7 @@ model:
   # model type in model class
   model_type: vitl
   # load pretrained/pretrained: bool and the path
-#  pretrained: "/data/wjy/workspace/lavis-mm-video-captioning/lavis/output/MAD_Qformer/autoad_caption_v2/20240219161/checkpoint_best.pth"
+#  pretrained: "/data/wjy/workspace/lavis-mm-video-captioning/lavis/output/MAD_Qformer/autoad_caption_v3/20240303232/checkpoint_best.pth"
   pretrained: "/data/lzh/workspace/lavis-mm-video-captioning/lavis/output/pretrained_weigths/blip2_pretrained_vitL_mad768.pth"
   load_pretrained: True
   load_finetuned: False
@@ -12,16 +12,17 @@ model:
       end2end: False
       dim_features: 768
   num_query_token: 32
-  visual_num_temporal_embedding: 250
+  visual_num_temporal_embedding: 3000
 #  opt_model: "meta-llama/Llama-2-7b-chat-hf"
   opt_model: "facebook/opt-350m"
   prompt: "According to the contextual captions and subtitles, describe the content of the clip"
   subtitle: False
   caption: True
-  contextual_max_len: 150
+  contextual_max_len: 500
   top_k: 6
-  num_hidden_layers: 3
-  max_txt_len: 32
+  num_hidden_layers: 2
+  max_txt_len: 64
+  fixed_contextual_range: 4
 
 datasets:
   mad_cap:
@@ -32,15 +33,15 @@ datasets:
 #          input_template: [ "clip_vit_L_fp16_features.npz" ]
 #          output_keys: [ "feature_visual" ]
           pad_key_lens:
-            - [ "feature_visual", 250 ]
-          context_range: 30
+            - [ "feature_visual", 3000 ]
+          context_range: 40
       eval:
           name: "auto_ad_video_train"
 #          input_template: [ "clip_vit_L_fp16_features.npz" ]
 #          output_keys: [ "feature_visual" ]
           pad_key_lens:
-            - [ "feature_visual", 250 ]
-          context_range: 30
+            - [ "feature_visual", 2000 ]
+          context_range: 40
     text_processor:
       train:
           name: "blip_caption"
@@ -85,7 +86,7 @@ run:
 #    test: 'MAD/coco/cap_test_coco.json'
 
   seed: 2023
-  output_dir: "output/MAD_Qformer/autoad_caption_v3"
+  output_dir: "output/MAD_Qformer/autoad_caption_v4"
 
   amp: True
   resume_ckpt_path: null
