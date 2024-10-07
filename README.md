@@ -11,7 +11,7 @@
 
 **MAD-v2**: please refer to [AutoAD](https://www.robots.ox.ac.uk/~vgg/research/autoad/v1.html). The size of propressed dataset is over 50G. Please e-mail me to obtain it.
 
-## Referenc
+## Reference
 
 ```text
 @InProceedings{wang2024loco-mad,
