@@ -36,6 +36,7 @@ class AutoADVideoTrainProcessor(BaseProcessor):
             pad_key_lens=None,
             # missing_mod_default=None,
             context_range=10,
+            char_num=2,
     ):
         """
         Args:
@@ -78,6 +79,7 @@ class AutoADVideoTrainProcessor(BaseProcessor):
 
         # context range
         self.context_range = context_range
+        self.char_num = char_num
 
     @classmethod
     def from_config(cls, cfg=None):
@@ -89,13 +91,14 @@ class AutoADVideoTrainProcessor(BaseProcessor):
         pad_key_lens = cfg.get("pad_key_lens", dict())
         # missing_mod_default = cfg.get("missing_mod_default", dict())
         context_range = cfg.get("context_range", int)
-
+        char_num = cfg.get("char_num", int)
         return cls(
             # input_template=input_template,
             # output_keys=output_keys,
             pad_key_lens=pad_key_lens,
             # missing_mod_default=missing_mod_default,
-            context_range=context_range
+            context_range=context_range,
+            char_num=char_num
         )
 
     # def _get_missing_modality_value(self, mod_name):
@@ -130,7 +133,7 @@ class AutoADVideoTrainProcessor(BaseProcessor):
         x = np.load(str(path))
         return torch.tensor(x['lang_feat'])
 
-    def __call__(self, fpath, context_feat_path, sub_context, cap_context):
+    def __call__(self, fpath, context_feat_path, sub_context, cap_context, characters):
         """
         Args:
             fpath (path):
@@ -155,10 +158,14 @@ class AutoADVideoTrainProcessor(BaseProcessor):
             else:
                 lang_feat = torch.zeros(768)
                 context_feat.append(lang_feat)
-        context_feat = torch.stack(context_feat, dim=0)
+        if len(context_feat) > 0:
+            context_feat = torch.stack(context_feat, dim=0)
+        else:
+            context_feat = torch.tensor([])
         output_dict['feature_language'] = context_feat
         output_dict['subtitle'] = sub_context
         output_dict['caption'] = cap_context
+        output_dict['character'] = characters
         # for in_name, suffix in zip(self.input_keys, self.input_suffix):
         #     # /data/{vit_l}/{video0}.{npy}
         #     feat_path = fpath.parent / in_name / f"{fpath.stem}.{suffix}"

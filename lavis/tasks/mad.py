@@ -57,7 +57,7 @@ class MADTask(BaseTask):
         output = model(samples)
         if hasattr(model, 'loss_config') and 'DAL' in model.loss_config:
             wandb.log({'loss_dal': output['loss_dal']})
-        return output["loss"], output["select_loss"]
+        return output["loss"]
 
     def valid_step(self, model, samples):
         results = []

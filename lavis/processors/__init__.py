@@ -29,7 +29,9 @@ from lavis.processors.multimodal_feature_processors import (
     VALQformerCaptionProcessor, VALQformerChCaptionProcessor
 )
 
+from lavis.processors.mad_multimodal_feature_processors import MADQformerFeatureProcessor
 from lavis.processors.moviecaption_feature_processors import AutoADVideoTrainProcessor
+from lavis.processors.moviecaption_feature_processors_recurrent import AutoADVideoTrainRecurrentProcessor
 
 from lavis.common.registry import registry
 
@@ -55,7 +57,8 @@ __all__ = [
     "VALQformerCaptionProcessor",
     "VALQformerChCaptionProcessor",
     # MAD
-    "AutoADVideoTrainProcessor"
+    "AutoADVideoTrainProcessor",
+    "MADQformerFeatureProcessor"
 ]
 
 

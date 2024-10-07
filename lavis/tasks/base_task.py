@@ -179,7 +179,7 @@ class BaseTask:
         metric_logger = MetricLogger(delimiter="  ")
         metric_logger.add_meter("lr", SmoothedValue(window_size=1, fmt="{value:.6f}"))
         metric_logger.add_meter("loss", SmoothedValue(window_size=1, fmt="{value:.4f}"))
-        metric_logger.add_meter("select_loss", SmoothedValue(window_size=1, fmt="{value:.4f}"))
+        # metric_logger.add_meter("select_loss", SmoothedValue(window_size=1, fmt="{value:.4f}"))
 
         # if iter-based runner, schedule lr based on inner epoch.
         logging.info(
@@ -215,7 +215,8 @@ class BaseTask:
             lr_scheduler.step(cur_epoch=inner_epoch, cur_step=i)
 
             with torch.cuda.amp.autocast(enabled=use_amp):
-                loss, select_loss = self.train_step(model=model, samples=samples)
+                # loss, select_loss = self.train_step(model=model, samples=samples)
+                loss = self.train_step(model=model, samples=samples)
 
             # after_train_step()
             if use_amp:
@@ -234,7 +235,7 @@ class BaseTask:
 
             metric_logger.update(loss=loss.item())
             metric_logger.update(lr=optimizer.param_groups[0]["lr"])
-            metric_logger.update(select_loss=select_loss.item())
+            # metric_logger.update(select_loss=select_loss.item())
 
         # after train_epoch()
         # gather the stats from all processes

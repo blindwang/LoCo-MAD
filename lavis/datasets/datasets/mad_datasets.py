@@ -39,6 +39,7 @@ class MadCaptionFeatureDataset(MadCaptionFeatureDatasetMixin, BaseDataset):
         super().__init__(vis_processor, text_processor, vis_root, ann_paths)
         # self.feat_suffix = feat_suffix
         self.context_range = vis_processor.context_range
+        self.char_num = vis_processor.char_num
         self.img_ids = {}
         n = 0
         # reorder img id
@@ -71,12 +72,19 @@ class MadCaptionFeatureDataset(MadCaptionFeatureDatasetMixin, BaseDataset):
         # context sub
         sub_context, cap_context = [], []
         context_feat_path = []
+        if 'chars' not in ann:
+            characters = []
+        else:
+            all_characters = self.annotation[index]['chars']
+            characters = sorted(all_characters, key=lambda x: x[1], reverse=True)[:self.char_num]
+            characters = [c[0] for c in characters]
         cur_movie = self.annotation[index]['movie']
         for i in range(self.context_range):
             if index - i - 1 >= 0:
                 if self.annotation[index - i - 1]['movie'] == cur_movie:
                     # context ad
                     cap_context.append(self.annotation[index - i - 1]['text'])
+                    # lang_feat_name = f"language_feature_unamed/{self.annotation[index - i - 1]['index']}.npz"
                     lang_feat_name = f"language_feature/{self.annotation[index - i - 1]['index']}.npz"
                     lang_feature_path = os.path.join(self.vis_root, lang_feat_name)
                     context_feat_path.append(lang_feature_path)
@@ -95,31 +103,38 @@ class MadCaptionFeatureDataset(MadCaptionFeatureDatasetMixin, BaseDataset):
                 cap_context.append("")
                 sub_context.append("")
         sub_context.reverse()
+        if not self.annotation[index]['subs']:
+            sub_context.append("")
+        else:
+            cur_sub_data = [sub_data['text'] for sub_data in self.annotation[index]['subs']]
+            sub_context.append(" ".join(cur_sub_data))
         cap_context.reverse()
-        for i in range(self.context_range):
-            if index + i + 1 < len(self.annotation):
-                if self.annotation[index + i + 1]['movie'] == cur_movie:
-                    # context ad
-                    cap_context.append(self.annotation[index + i + 1]['text'])
-                    lang_feat_name = f"language_feature/{self.annotation[index - i - 1]['index']}.npz"
-                    lang_feature_path = os.path.join(self.vis_root, lang_feat_name)
-                    context_feat_path.append(lang_feature_path)
-                    # context sub
-                    if not self.annotation[index + i + 1]['subs']:
-                        sub_context.append("")
-                    else:
-                        part_sub_data = [sub_data['text'] for sub_data in self.annotation[index + i + 1]['subs']]
-                        sub_context.append(" ".join(part_sub_data))
-                else:
-                    context_feat_path.append("")
-                    cap_context.append("")
-                    sub_context.append("")
-            else:
-                context_feat_path.append("")
-                cap_context.append("")
-                sub_context.append("")
+        context_feat_path.reverse()
+        # for i in range(self.context_range):
+        #     if index + i + 1 < len(self.annotation):
+        #         if self.annotation[index + i + 1]['movie'] == cur_movie:
+        #             # context ad
+        #             cap_context.append(self.annotation[index + i + 1]['text'])
+        #             # lang_feat_name = f"language_feature_unamed/{self.annotation[index + i + 1]['index']}.npz"
+        #             lang_feat_name = f"language_feature/{self.annotation[index + i + 1]['index']}.npz"
+        #             lang_feature_path = os.path.join(self.vis_root, lang_feat_name)
+        #             context_feat_path.append(lang_feature_path)
+        #             # context sub
+        #             if not self.annotation[index + i + 1]['subs']:
+        #                 sub_context.append("")
+        #             else:
+        #                 part_sub_data = [sub_data['text'] for sub_data in self.annotation[index + i + 1]['subs']]
+        #                 sub_context.append(" ".join(part_sub_data))
+        #         else:
+        #             context_feat_path.append("")
+        #             cap_context.append("")
+        #             sub_context.append("")
+        #     else:
+        #         context_feat_path.append("")
+        #         cap_context.append("")
+        #         sub_context.append("")
 
-        feature_dict = self.vis_processor(feature_path, context_feat_path, sub_context, cap_context)
+        feature_dict = self.vis_processor(feature_path, context_feat_path, sub_context, cap_context, characters)
         # gts relates to compute evaluation index, while caption is for training such as computing loss
         caption = self.text_processor(ann["text"])
 
@@ -145,6 +160,7 @@ class MadCaptionFeatureEvalDataset(MadCaptionFeatureDatasetMixin, BaseDataset):
         super().__init__(vis_processor, text_processor, vis_root, ann_paths)
         # self.feat_suffix = feat_suffix
         self.context_range = vis_processor.context_range
+        self.char_num = vis_processor.char_num
         self.img_ids = {}
         n = 0
         # reorder img id
@@ -173,12 +189,19 @@ class MadCaptionFeatureEvalDataset(MadCaptionFeatureDatasetMixin, BaseDataset):
         # context sub
         sub_context, cap_context = [], []
         context_feat_path = []
+        if 'chars' not in ann:
+            characters = []
+        else:
+            all_characters = self.annotation[index]['chars']
+            characters = sorted(all_characters, key=lambda x: x[1], reverse=True)[:self.char_num]
+            characters = [c[0] for c in characters]
         cur_movie = self.annotation[index]['movie']
         for i in range(self.context_range):
             if index - i - 1>=0:
                 if self.annotation[index - i - 1]['movie'] == cur_movie:
                     # context ad
                     cap_context.append(self.annotation[index - i - 1]['text'])
+                    # lang_feat_name = f"language_feature_unamed_eval/{self.annotation[index - i - 1]['index']}.npz"
                     lang_feat_name = f"language_feature_eval/{self.annotation[index - i - 1]['index']}.npz"
                     lang_feature_path = os.path.join(self.vis_root, lang_feat_name)
                     context_feat_path.append(lang_feature_path)
@@ -197,29 +220,36 @@ class MadCaptionFeatureEvalDataset(MadCaptionFeatureDatasetMixin, BaseDataset):
                 cap_context.append("")
                 sub_context.append("")
         sub_context.reverse()
+        if not self.annotation[index]['subs']:
+            sub_context.append("")
+        else:
+            cur_sub_data = [sub_data['text'] for sub_data in self.annotation[index]['subs']]
+            sub_context.append(" ".join(cur_sub_data))
         cap_context.reverse()
-        for i in range(self.context_range):
-            if index + i + 1<len(self.annotation):
-                if self.annotation[index + i + 1]['movie'] == cur_movie:
-                    # context ad
-                    cap_context.append(self.annotation[index + i + 1]['text'])
-                    lang_feat_name = f"language_feature_eval/{self.annotation[index - i - 1]['index']}.npz"
-                    lang_feature_path = os.path.join(self.vis_root, lang_feat_name)
-                    context_feat_path.append(lang_feature_path)
-                    # context sub
-                    if not self.annotation[index + i + 1]['subs']:
-                        sub_context.append("")
-                    else:
-                        part_sub_data = [sub_data['text'] for sub_data in self.annotation[index + i + 1]['subs']]
-                        sub_context.append(" ".join(part_sub_data))
-                else:
-                    context_feat_path.append("")
-                    cap_context.append("")
-                    sub_context.append("")
-            else:
-                context_feat_path.append("")
-                cap_context.append("")
-                sub_context.append("")
+        context_feat_path.reverse()
+        # for i in range(self.context_range):
+        #     if index + i + 1<len(self.annotation):
+        #         if self.annotation[index + i + 1]['movie'] == cur_movie:
+        #             # context ad
+        #             cap_context.append(self.annotation[index + i + 1]['text'])
+        #             # lang_feat_name = f"language_feature_unamed_eval/{self.annotation[index + i + 1]['index']}.npz"
+        #             lang_feat_name = f"language_feature_eval/{self.annotation[index + i + 1]['index']}.npz"
+        #             lang_feature_path = os.path.join(self.vis_root, lang_feat_name)
+        #             context_feat_path.append(lang_feature_path)
+        #             # context sub
+        #             if not self.annotation[index + i + 1]['subs']:
+        #                 sub_context.append("")
+        #             else:
+        #                 part_sub_data = [sub_data['text'] for sub_data in self.annotation[index + i + 1]['subs']]
+        #                 sub_context.append(" ".join(part_sub_data))
+        #         else:
+        #             context_feat_path.append("")
+        #             cap_context.append("")
+        #             sub_context.append("")
+        #     else:
+        #         context_feat_path.append("")
+        #         cap_context.append("")
+        #         sub_context.append("")
 
         # context ad
         # cap_context = []
@@ -233,7 +263,7 @@ class MadCaptionFeatureEvalDataset(MadCaptionFeatureDatasetMixin, BaseDataset):
         #         if self.annotation[index + i + 1]['movie'] == cur_movie:
         #             cap_context.append(self.annotation[index + i + 1]['text'])
 
-        feature_dict = self.vis_processor(feature_path, context_feat_path, sub_context, cap_context)
+        feature_dict = self.vis_processor(feature_path, context_feat_path, sub_context, cap_context, characters)
         # gts relates to compute evaluation index, while caption is for training such as computing loss
         caption = self.text_processor(ann["text"])
 

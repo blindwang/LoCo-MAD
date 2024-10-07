@@ -20,6 +20,11 @@ from lavis.datasets.datasets.video_caption_datasets import (
     VideoCaptionFeatureEvalDataset
 )
 
+from lavis.datasets.datasets.mad_video_caption_datasets import (
+    MadVideoCaptionFeatureDataset,
+    MadVideoCaptionFeatureEvalDataset
+)
+
 
 @registry.register_builder("coco_caption")
 class COCOCapBuilder(BaseDatasetBuilder):
@@ -77,4 +82,13 @@ class MSRVTTFeatureCapBuilder(BaseDatasetBuilder):
 
     DATASET_CONFIG_DICT = {
         "default": "configs/datasets/msrvtt/features_cap.yaml",
+    }
+
+@registry.register_builder("mad_feature_caption")
+class MADFeatureCapBuilder(BaseDatasetBuilder):
+    train_dataset_cls = MadVideoCaptionFeatureDataset
+    eval_dataset_cls = MadVideoCaptionFeatureEvalDataset
+
+    DATASET_CONFIG_DICT = {
+        "default": "configs/datasets/mad/mad_caption.yaml",
     }

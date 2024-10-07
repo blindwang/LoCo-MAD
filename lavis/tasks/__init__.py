@@ -18,6 +18,8 @@ from lavis.tasks.vqa_reading_comprehension import VQARCTask, GQARCTask
 from lavis.tasks.dialogue import DialogueTask
 from lavis.tasks.video_captioning import VideoCaptionTask, ChVideoCaptionTask
 from lavis.tasks.mad import MADTask
+from lavis.tasks.mad_video_captioning import MadVideoCaptionTask
+
 
 
 def setup_task(cfg):
@@ -48,5 +50,6 @@ __all__ = [
     "ChVideoCaptionTask",
     "GEN_VQATask",
     "VideoQATask",
-    "MADTask"
+    "MADTask",
+    "MadVideoCaptionTask"
 ]

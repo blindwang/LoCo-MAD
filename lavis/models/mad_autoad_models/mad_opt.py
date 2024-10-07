@@ -308,11 +308,21 @@ class MADQformerOPT(QformerBase):
             # add special token for subtitles and captions
             subs_and_caps = []
             for i in range(len(samples['caption'])):
-                sample_sub_cap = ""
+                cur_subtitle = samples['subtitle'][i][-1]
+                del samples['subtitle'][i][-1]
+                if cur_subtitle == "":
+                    cur_sub_prompt = ""
+                else:
+                    cur_sub_prompt = "Next are subtitles of the clip: " + cur_subtitle + ". "
+                sample_sub_cap = cur_sub_prompt + "Next are contextual subtitles and captions for the above clip: "
                 assert len(samples['caption'][i]) == len(
                     samples['subtitle'][i]), "subtitle list and caption list should have the same length"
                 context_range = len(samples['caption'][i])
-                contexture_index = [j for j in range(max(0,context_range//2-self.fixed_contextual_range + 1), min(context_range,context_range//2+self.fixed_contextual_range + 1))]
+                # contexture_index = [j for j in range(max(0,context_range//2-self.fixed_contextual_range + 1),
+                #                                      min(context_range,context_range//2+
+                #                                          self.fixed_contextual_range + 1))]
+                contexture_index = [j for j in range(max(0, context_range // 2 - self.fixed_contextual_range + 1),
+                                                     context_range)]
                 for j in range(len(samples['caption'][i])):
                     if topk_relavency_index is not None:
                         if j not in topk_relavency_index[i] and j not in contexture_index:
@@ -321,6 +331,7 @@ class MADQformerOPT(QformerBase):
                         sample_sub_cap += "BSB_token" + samples['subtitle'][i][j] + "ESB_token"
                     if samples['caption'][i][j] != "":
                         sample_sub_cap += "BCP_token" + samples['caption'][i][j] + "ECP_token"
+                sample_sub_cap += ". Next are possible characters: " + ",".join(samples["character"][i])
                 subs_and_caps.append(sample_sub_cap)
             sub_cap_tokens = self.opt_tokenizer(subs_and_caps,
                                                 return_tensors="pt",
@@ -479,7 +490,7 @@ class MADQformerOPT(QformerBase):
             )
         loss = outputs.loss + select_loss
 
-        return {"loss": loss, "select_loss": select_loss}
+        return {"loss": loss}
 
     @torch.no_grad()
     def generate(
@@ -490,10 +501,10 @@ class MADQformerOPT(QformerBase):
             max_length=30,
             min_length=1,
             top_p=0.9,
-            repetition_penalty=1.0,
-            length_penalty=1.0,
+            repetition_penalty=0.8,
+            length_penalty=0.5,
             num_captions=1,
-            temperature=1,
+            temperature=0.7,
     ):
         """
         Args:
@@ -566,6 +577,15 @@ class MADQformerOPT(QformerBase):
                 relavency_score = self.softmax(linear_output)
                 # pick the top-k relavency score in a differentiable way
                 topk_relavency_score, topk_relavency_index = torch.topk(relavency_score, self.top_k)
+                for i in range(len(samples["image_id"])):
+                    captions = samples["caption"][i]
+                    image_id = samples["image_id"][i]
+                    import os
+                    with open(os.path.join("/data/wjy/workspace/lavis-mm-video-captioning/lavis/output/topk_choose_harry",
+                                           str(image_id) + ".txt"), "w") as f:
+                        topk_ls = list(topk_relavency_index[i].to("cpu").numpy())
+                        for j in range(len(topk_ls)):
+                            f.write(captions[topk_ls[j]]+"\n")
 
             if self.subtitle and self.caption:
                 # all_contextual_text_attn_output, all_contextual_text_attn_output_weights = None, None
@@ -625,13 +645,21 @@ class MADQformerOPT(QformerBase):
                 # selected_text_embeds = selected_text_embeds.view(batchsize, -1, dim_num)
                 subs_and_caps = []
                 for i in range(len(samples['caption'])):
-                    sample_sub_cap = ""
+                    cur_subtitle = samples['subtitle'][i][-1]
+                    del samples['subtitle'][i][-1]
+                    if len(cur_subtitle) > 0:
+                        cur_sub_prompt = "Next are subtitles of the clip: " + cur_subtitle + "\n"
+                    else:
+                        cur_sub_prompt = ""
+                    sample_sub_cap = cur_sub_prompt + "Next are contextual subtitles and captions for the above clip:\n"
                     assert len(samples['caption'][i]) == len(
                         samples['subtitle'][i]), "subtitle list and caption list should have the same length"
                     context_range = len(samples['caption'][i])
-                    contexture_index = [j for j in
-                                        range(max(0, context_range // 2 - self.fixed_contextual_range + 1),
-                                              min(context_range, context_range // 2 + self.fixed_contextual_range + 1))]
+                    # contexture_index = [j for j in
+                    #                     range(max(0, context_range // 2 - self.fixed_contextual_range + 1),
+                    #                           min(context_range, context_range // 2 + self.fixed_contextual_range + 1))]
+                    contexture_index = [j for j in range(max(0, context_range // 2 - self.fixed_contextual_range + 1),
+                                                         context_range)]
                     for j in range(len(samples['caption'][i])):
                         if topk_relavency_index is not None:
                             if j not in topk_relavency_index[i] and j not in contexture_index:
@@ -640,6 +668,7 @@ class MADQformerOPT(QformerBase):
                             sample_sub_cap += "BSB_token" + samples['subtitle'][i][j] + "ESB_token"
                         if samples['caption'][i][j] != "":
                             sample_sub_cap += "BCP_token" + samples['caption'][i][j] + "ECP_token"
+                    sample_sub_cap += ". Next are possible characters: " + ",".join(samples["character"][i])
                     subs_and_caps.append(sample_sub_cap)
                 sub_cap_tokens = self.opt_tokenizer(subs_and_caps,
                                                     return_tensors="pt",
@@ -925,6 +954,14 @@ class MADQformerOPT(QformerBase):
         bs = video_tokens.shape[0]
         wrapped_prompt = video_tokens
         wrapped_prompt_atts = torch.ones(wrapped_prompt.size()[:-1], dtype=torch.long, device=device)
+
+        prefix_tokens = self.opt_tokenizer("Next is clip for description: ", return_tensors="pt").to(device)
+        prefix_embeds = self.opt_model.model.decoder.embed_tokens(prefix_tokens.input_ids.long()).expand(bs, -1, -1)
+        if prefix_embeds.shape[-1] != wrapped_prompt.shape[-1]:
+            prefix_embeds = self.opt_model.model.decoder.project_in(prefix_embeds)
+        wrapped_prompt = torch.cat([prefix_embeds, wrapped_prompt], dim=1)
+        wrapped_prompt_atts = torch.cat([prefix_tokens.attention_mask.expand(bs, -1),wrapped_prompt_atts], dim=1)
+
         # if selected_text_embeds is not None:
         #     wrapped_prompt = torch.cat([wrapped_prompt, selected_text_embeds], dim=1)
         if sub_cap_tokens is not None:

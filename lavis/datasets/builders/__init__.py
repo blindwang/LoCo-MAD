@@ -43,6 +43,10 @@ from lavis.datasets.builders.caption_builder import MSRVTTFeatureCapBuilder
 
 from lavis.datasets.builders.mad_builder import MADBuilder
 
+from lavis.datasets.builders.mad_builder_recurrent import MADRecurrentBuilder
+
+from lavis.datasets.builders.lsmdc_builder import LSMDCBuilder
+
 from lavis.common.registry import registry
 
 __all__ = [
@@ -70,6 +74,8 @@ __all__ = [
     "AVSDDialBuilder",
     "MSRVTTFeatureCapBuilder",
     "MADBuilder",
+    "MADRecurrentBuilder",
+    "LSMDCBuilder",
     "VALMSRVTTRetrievalBuilder",
     "MSRVTTFeatQABuilder",
 ]
