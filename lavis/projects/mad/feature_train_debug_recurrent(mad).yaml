@@ -1,0 +1,105 @@
+model:
+  # ModelZoo model name
+  arch: mad_qformer_opt_recurrent
+  # model type in model class
+  model_type: vitl
+  # load pretrained/pretrained: bool and the path
+  pretrained: "/data/wjy/workspace/lavis-mm-video-captioning/lavis/output/MAD_Qformer/autoad_caption_datav3/20240524104/checkpoint_best.pth"
+#  pretrained: "/data/lzh/workspace/lavis-mm-video-captioning/lavis/output/pretrained_weigths/blip2_pretrained_vitL_mad768.pth"
+  load_pretrained: True
+  load_finetuned: False
+  encoder_config:
+      end2end: False
+      dim_features: 768
+  num_query_token: 32
+  visual_num_temporal_embedding: 1000
+#  opt_model: "meta-llama/Llama-2-7b-chat-hf"
+  opt_model: "facebook/opt-1.3b"
+  prompt: "Generate the description of this clip"
+  subtitle: True
+  caption: True
+  contextual_max_len: 200
+  top_k: 5
+  num_hidden_layers: 2
+  max_txt_len: 36
+  fixed_contextual_range: 2
+
+datasets:
+  mad_cap_recurrent:
+    data_type: features
+    vis_processor:
+      train:
+          name: "auto_ad_video_train"
+#          input_template: [ "clip_vit_L_fp16_features.npz" ]
+#          output_keys: [ "feature_visual" ]
+          pad_key_lens:
+            - [ "feature_visual", 1000 ]
+          context_range: 10
+      eval:
+          name: "auto_ad_video_train_recurrent"
+#          input_template: [ "clip_vit_L_fp16_features.npz" ]
+#          output_keys: [ "feature_visual" ]
+          pad_key_lens:
+            - [ "feature_visual", 1000 ]
+          context_range: 10
+    text_processor:
+      train:
+          name: "blip_caption"
+      eval:
+          name: "blip_caption"
+    build_info:
+      annotations:
+        train:
+#          storage: MAD/annotation_long_unamed.json
+          storage: MAD/mad_annotation_train_with_aug_v3.json
+        val:
+#           storage: MAD/mad_annotation_eval.json
+#          storage: MAD/annotation_long_unamed_eval.json
+           storage: MAD/annotation_long_eval.json
+        test:
+#           storage: MAD/mad_annotation_eval.json
+#          storage: MAD/annotation_long_unamed_eval.json
+           storage: MAD/annotation_long_eval.json
+      features:
+        storage: MAD
+
+run:
+  task: mad
+  # optimizer
+  lr_sched: "linear_warmup_cosine_lr"
+  init_lr: 1e-5
+  min_lr: 0
+  warmup_lr: 1e-8
+
+  weight_decay: 0.05
+  max_epoch: 5
+  batch_size_train: 32
+  batch_size_eval: 20
+  num_workers: 2
+  warmup_steps: 500
+
+  max_len: 36
+  min_len: 10
+  num_beams: 3
+  gt_files:
+    val: 'MAD/coco/cap_test_lsmdc.json'
+    test: 'MAD/coco/cap_test_lsmdc.json'
+#    val: 'MAD/coco/cap_test_lsmdc_unamed_coco.json'
+#    test: 'MAD/coco/cap_test_lsmdc_unamed_coco.json'
+#    val: 'MAD/coco/cap_test_coco.json'
+#    test: 'MAD/coco/cap_test_coco.json'
+
+  seed: 2023
+  output_dir: "output/MAD_Qformer/autoad_caption_recurrent_datav3"
+
+  amp: True
+  resume_ckpt_path: null
+
+  evaluate: True
+  train_splits: ["train"]
+  valid_splits: ["val"]
+
+  device: "cuda"
+  world_size: 4
+  dist_url: "env://"
+  distributed: True
